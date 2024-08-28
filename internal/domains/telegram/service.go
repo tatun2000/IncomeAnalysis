@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"telegrammbot.core/internal/constants"
@@ -16,12 +15,8 @@ var (
 )
 
 type (
-	IOauthService interface {
-		GetClient() *http.Client
-	}
-
 	ISheetService interface {
-		FetchCellsValue(spreadsheetID, rangeCells string) (result []string, err error)
+		FetchCellsValue(ctx context.Context, spreadsheetID, rangeCells string) (result []string, err error)
 	}
 )
 
@@ -30,11 +25,10 @@ type Service struct {
 	cancelFunc context.CancelFunc
 
 	bot          *tgbotapi.BotAPI
-	oauthService IOauthService
 	sheetService ISheetService
 }
 
-func NewService(oauthService IOauthService, sheetService ISheetService, token string) (service *Service, err error) {
+func NewService(sheetService ISheetService, token string) (service *Service, err error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -48,7 +42,6 @@ func NewService(oauthService IOauthService, sheetService ISheetService, token st
 		cancelFunc: cancelFunc,
 
 		bot:          bot,
-		oauthService: oauthService,
 		sheetService: sheetService,
 	}
 
@@ -90,7 +83,7 @@ func (s *Service) handleRequests(ctx context.Context) {
 func (s *Service) readTotalAmountToSpend(ctx context.Context) (result string, err error) {
 	//client := s.oauthService.GetClient()
 
-	values, err := s.sheetService.FetchCellsValue(constants.SpreadsheetID, "Август!AH38:AJ39")
+	values, err := s.sheetService.FetchCellsValue(ctx, constants.SpreadsheetID, "Август!AH38:AJ39")
 	if err != nil {
 		return result, fmt.Errorf("readTotalAmountToSpend: %w", err)
 	}
