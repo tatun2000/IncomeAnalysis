@@ -13,11 +13,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-)
-
-const (
-	tokenFilename = "token.json"
-	credFilename  = "credentials.json"
+	"telegrammbot.core/internal/config"
+	"telegrammbot.core/internal/constants"
 )
 
 type (
@@ -33,15 +30,16 @@ type (
 	}
 )
 
-func (s *Service) NewService(refreshToken, workDir string) (service *Service, err error) {
+func (s *Service) NewService(generalOpts config.GeneralOpts, oauthOpts config.OauthOpts) (service *Service, err error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	service = &Service{
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 
-		refreshToken:      refreshToken,
-		tokenFullFilename: filepath.Join(s.workDir, tokenFilename),
+		workDir:           generalOpts.WorkDir,
+		refreshToken:      oauthOpts.RefreshToken,
+		tokenFullFilename: filepath.Join(generalOpts.WorkDir, constants.TokenFilename),
 		httpClient:        resty.New(),
 	}
 
@@ -59,12 +57,12 @@ func (s *Service) Close() {
 }
 
 func (s *Service) setOauth2Config(ctx context.Context) (err error) {
-	data, err := os.ReadFile(path.Join(s.workDir, credFilename))
+	data, err := os.ReadFile(path.Join(s.workDir, constants.CredFilename))
 	if err != nil {
 		return fmt.Errorf("setOauth2Config: %w", err)
 	}
 
-	config, err := google.ConfigFromJSON(data, "https://www.googleapis.com/auth/spreadsheets.readonly")
+	config, err := google.ConfigFromJSON(data, constants.SpreadsheetsReadOnlyScopeURL)
 	if err != nil {
 		return fmt.Errorf("setOauth2Config: %w", err)
 	}
@@ -91,12 +89,12 @@ func (s *Service) updateAccessToken(ctx context.Context) (err error) {
 	var result getRefreshTokenResp
 	resp, err := s.httpClient.R().
 		SetQueryParams(map[string]string{
-			"client_id":     "228230793527-vhj698i1n7m6i6nietr666235sfs6aik.apps.googleusercontent.com",
-			"client_secret": "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",
+			"client_id":     constants.ClientID,
+			"client_secret": constants.ClientSecret,
 			"refresh_token": s.refreshToken,
 			"grant_type":    "refresh_token",
 		}).
-		Post("https://oauth2.googleapis.com/token")
+		Post(constants.FetchAccessTokenURL)
 	if err != nil {
 		return fmt.Errorf("updateAccessToken: %w", err)
 	}
@@ -111,7 +109,7 @@ func (s *Service) updateAccessToken(ctx context.Context) (err error) {
 		TokenType:    "Bearer",
 	}
 
-	file, err := os.Create(path.Join(s.workDir, tokenFilename))
+	file, err := os.Create(path.Join(s.workDir, constants.TokenFilename))
 	if err != nil {
 		return fmt.Errorf("updateAccessToken: %w", err)
 	}

@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"telegrammbot.core/internal/constants"
+	"telegrammbot.core/internal/config"
+	"telegrammbot.core/internal/entities/sheet"
 )
 
 var (
@@ -16,7 +18,7 @@ var (
 
 type (
 	ISheetService interface {
-		FetchCellsValue(ctx context.Context, spreadsheetID, rangeCells string) (result []string, err error)
+		HandleRequest(ctx context.Context, rawRequest string, reqType sheet.ReqType) (result string, err error)
 	}
 )
 
@@ -28,10 +30,10 @@ type Service struct {
 	sheetService ISheetService
 }
 
-func NewService(sheetService ISheetService, token string) (service *Service, err error) {
+func NewService(sheetService ISheetService, botOpts config.BotOpts) (service *Service, err error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	bot, err := tgbotapi.NewBotAPI(token)
+	bot, err := tgbotapi.NewBotAPI(botOpts.Token)
 	if err != nil {
 		return nil, fmt.Errorf("NewService: %w", err)
 	}
@@ -64,33 +66,21 @@ func (s *Service) handleRequests(ctx context.Context) {
 		if update.Message != nil { // If we got a message
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 			var msg tgbotapi.MessageConfig
-			switch update.Message.Text {
-			case "Сколько осталось потратить?":
-				result, err := s.readTotalAmountToSpend(ctx)
+
+			if strings.Contains(update.Message.Text, "Добавить в") {
+				if _, err := s.sheetService.HandleRequest(ctx, update.Message.Text, sheet.AddValueToCell); err != nil {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, err.Error())
+					break
+				}
+			} else {
+				result, err := s.sheetService.HandleRequest(ctx, update.Message.Text, sheet.GetValueFromCell)
 				if err != nil {
 					msg = tgbotapi.NewMessage(update.Message.Chat.ID, err.Error())
 					break
 				}
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, result)
-			default:
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Не то")
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Осталось потратить: %v рублей", result))
 			}
 			s.bot.Send(msg)
 		}
 	}
-}
-
-func (s *Service) readTotalAmountToSpend(ctx context.Context) (result string, err error) {
-	//client := s.oauthService.GetClient()
-
-	values, err := s.sheetService.FetchCellsValue(ctx, constants.SpreadsheetID, "Август!AH38:AJ39")
-	if err != nil {
-		return result, fmt.Errorf("readTotalAmountToSpend: %w", err)
-	}
-
-	if len(values) != 1 {
-		return result, fmt.Errorf("readTotalAmountToSpend: %w", &ErrInvalidValuesCount)
-	}
-
-	return fmt.Sprintf("Осталось потратить: %v рублей", result), nil
 }

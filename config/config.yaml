@@ -1,0 +1,11 @@
+generalOpts:
+  workDir: "/app"
+
+botOpts:
+  token: "5657441460:AAHu_VJ3jBt9Nv2uXvMkuabkXkkvaD70oA8"
+
+sheetOpts:
+  spreadsheetId: "1T28n-GhmvDXeTICR3X7gzvPtU-bozmv_Ys_Uid5WK80"
+
+oauthOpts:
+  refreshToken: "1//0cDHXAVH1wIE4CgYIARAAGAwSNwF-L9Ircyl17EGWJzg_E5ApKOCUA0X2aEGSm2kHQcoHhr7BUUM6TIDSw9_D6kgiouHkqWHp7pI"
