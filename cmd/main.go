@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-resty/resty/v2"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -36,6 +38,23 @@ type Credentials struct {
 }
 
 func main() {
+	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt, syscall.SIGTERM)
+	defer cancelFunc()
+
+	app, gracefulShutdown, err := InjectAppGod(ctx, ".")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		app.telegramService.Run(ctx)
+	}()
+
+	<-ctx.Done()
+	gracefulShutdown()
+}
+
+func oldMain() {
 	ctx := context.Background()
 	b, err := os.ReadFile("../credentials.json")
 	if err != nil {

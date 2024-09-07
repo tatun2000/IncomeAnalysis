@@ -17,7 +17,7 @@ import (
 
 type (
 	IOauthService interface {
-		GetClient() *http.Client
+		GetClient() (client *http.Client, err error)
 	}
 
 	Service struct {
@@ -68,7 +68,10 @@ func (s *Service) HandleRequest(ctx context.Context, rawRequest string, reqType 
 		tablePath := fmt.Sprintf("%s!%s%s", month, day, category)
 		log.Printf("tablePath = %s", tablePath)
 
-		client := s.oauthService.GetClient()
+		client, err := s.oauthService.GetClient()
+		if err != nil {
+			return result, fmt.Errorf("HandleRequest: %w", err)
+		}
 		srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
 		if err != nil {
 			return result, fmt.Errorf("HandleRequest: %w", err)
@@ -83,14 +86,17 @@ func (s *Service) HandleRequest(ctx context.Context, rawRequest string, reqType 
 			return result, fmt.Errorf("HandleRequest: %w", err)
 		}
 	case sheet.GetValueFromCell:
-		client := s.oauthService.GetClient()
+		client, err := s.oauthService.GetClient()
+		if err != nil {
+			return result, fmt.Errorf("HandleRequest: %w", err)
+		}
 		srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
 		if err != nil {
-			return result, fmt.Errorf("readTotalAmountToSpend: %w", err)
+			return result, fmt.Errorf("HandleRequest: %w", err)
 		}
 		resp, err := srv.Spreadsheets.Values.Get(s.spreedSheetID, "Август!AH38:AJ39").Do()
 		if err != nil {
-			return result, fmt.Errorf("readTotalAmountToSpend: %w", err)
+			return result, fmt.Errorf("HandleRequest: %w", err)
 		}
 
 		if len(resp.Values) == 0 {

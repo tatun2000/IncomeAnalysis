@@ -23,16 +23,11 @@ type (
 )
 
 type Service struct {
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-
 	bot          *tgbotapi.BotAPI
 	sheetService ISheetService
 }
 
 func NewService(sheetService ISheetService, botOpts config.BotOpts) (service *Service, err error) {
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	bot, err := tgbotapi.NewBotAPI(botOpts.Token)
 	if err != nil {
 		return nil, fmt.Errorf("NewService: %w", err)
@@ -40,23 +35,14 @@ func NewService(sheetService ISheetService, botOpts config.BotOpts) (service *Se
 	bot.Debug = true
 
 	service = &Service{
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
-
 		bot:          bot,
 		sheetService: sheetService,
 	}
 
-	go service.handleRequests(service.ctx)
-
 	return service, nil
 }
 
-func (s *Service) Close() {
-	s.ctx.Done()
-}
-
-func (s *Service) handleRequests(ctx context.Context) {
+func (s *Service) Run(ctx context.Context) {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 

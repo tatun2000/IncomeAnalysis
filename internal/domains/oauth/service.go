@@ -30,7 +30,7 @@ type (
 	}
 )
 
-func (s *Service) NewService(generalOpts config.GeneralOpts, oauthOpts config.OauthOpts) (service *Service, err error) {
+func NewService(generalOpts config.GeneralOpts, oauthOpts config.OauthOpts) (service *Service, cleanup func(), err error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	service = &Service{
@@ -43,13 +43,15 @@ func (s *Service) NewService(generalOpts config.GeneralOpts, oauthOpts config.Oa
 		httpClient:        resty.New(),
 	}
 
-	if err = s.setOauth2Config(service.ctx); err != nil {
-		return service, fmt.Errorf("NewService: %w", err)
+	if err = service.setOauth2Config(service.ctx); err != nil {
+		return service, nil, fmt.Errorf("NewService: %w", err)
 	}
 
 	go service.refreshAccessTokenInBackground(service.ctx)
 
-	return service, nil
+	return service, func() {
+		service.Close()
+	}, nil
 }
 
 func (s *Service) Close() {

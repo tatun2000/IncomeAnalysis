@@ -1,0 +1,2 @@
+wire:
+	cd cmd && wire
