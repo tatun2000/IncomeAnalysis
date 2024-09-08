@@ -12,6 +12,7 @@ type ReqType string
 var (
 	AddValueToCell   ReqType = "Добавить в"
 	GetValueFromCell ReqType = "Получить"
+	Help             ReqType = "help"
 )
 
 const (

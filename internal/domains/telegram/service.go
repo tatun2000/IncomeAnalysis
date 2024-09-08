@@ -53,18 +53,26 @@ func (s *Service) Run(ctx context.Context) {
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 			var msg tgbotapi.MessageConfig
 
-			if strings.Contains(update.Message.Text, "Добавить в") {
+			if strings.Contains(update.Message.Text, "/help") {
+				result, err := s.sheetService.HandleRequest(ctx, update.Message.Text, sheet.Help)
+				if err != nil {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, err.Error())
+				} else {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, result)
+				}
+			} else if strings.Contains(update.Message.Text, "Добавить в") {
 				if _, err := s.sheetService.HandleRequest(ctx, update.Message.Text, sheet.AddValueToCell); err != nil {
 					msg = tgbotapi.NewMessage(update.Message.Chat.ID, err.Error())
-					break
+				} else {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Успешно добавлено")
 				}
 			} else {
 				result, err := s.sheetService.HandleRequest(ctx, update.Message.Text, sheet.GetValueFromCell)
 				if err != nil {
 					msg = tgbotapi.NewMessage(update.Message.Chat.ID, err.Error())
-					break
+				} else {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Осталось потратить: %v рублей", result))
 				}
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Осталось потратить: %v рублей", result))
 			}
 			s.bot.Send(msg)
 		}

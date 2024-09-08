@@ -64,7 +64,7 @@ func (s *Service) setOauth2Config(ctx context.Context) (err error) {
 		return fmt.Errorf("setOauth2Config: %w", err)
 	}
 
-	config, err := google.ConfigFromJSON(data, constants.SpreadsheetsReadOnlyScopeURL)
+	config, err := google.ConfigFromJSON(data, constants.SpreadsheetsScopeURL)
 	if err != nil {
 		return fmt.Errorf("setOauth2Config: %w", err)
 	}
@@ -74,6 +74,9 @@ func (s *Service) setOauth2Config(ctx context.Context) (err error) {
 }
 
 func (s *Service) refreshAccessTokenInBackground(ctx context.Context) (err error) {
+	if err = s.updateAccessToken(ctx); err != nil {
+		return fmt.Errorf("refreshAccessTokenInBackground: %w", err)
+	}
 	ticker := time.NewTicker(time.Hour)
 	for {
 		select {

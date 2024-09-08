@@ -21,7 +21,7 @@ type GeneralOpts struct {
 }
 
 type BotOpts struct {
-	Token string `mapstructure:"endpoint" validate:"required"`
+	Token string `mapstructure:"token" validate:"required"`
 }
 
 type SheetOpts struct {
